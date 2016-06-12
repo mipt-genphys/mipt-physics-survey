@@ -33,7 +33,7 @@
                     </#list>
                     <div data-role="collapsible">
                         <h2>Отзывы:</h2>
-                        <#list lectures.comments as comment>
+                        <#list lectures.getComments() as comment>
                             <p><strong>${comment.first}</strong></p>
                             <p>${comment.second}</p>
                         </#list>
@@ -52,7 +52,7 @@
                     </#list>
                     <div data-role="collapsible">
                         <h2>Отзывы:</h2>
-                        <#list seminars.comments as comment>
+                        <#list seminars.getComments() as comment>
                             <p><strong>${comment.first}</strong></p>
                             <p>${comment.second}</p>
                         </#list>
@@ -71,7 +71,7 @@
                     </#list>
                     <div data-role="collapsible">
                         <h2>Отзывы:</h2>
-                        <#list labs.comments as comment>
+                        <#list labs.getComments() as comment>
                             <p><strong>${comment.first}</strong></p>
                             <p>${comment.second}</p>
                         </#list>
@@ -81,7 +81,7 @@
         </#if>
         <#if !embed>
             <div data-role="footer">
-                <h1>Создано при помощи генератора отчетов</h1>
+                <h1>Создано при помощи <a href="https://bitbucket.org/mipt-npm/mipt-physics-survey">генератора отчетов</a>. &copy; <a href="mailto:altavir@gmail.com">Александр Нозик</a>, 2016</h1>
             </div>
         </#if>
     </div>
