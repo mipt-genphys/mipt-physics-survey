@@ -1,10 +1,8 @@
 package ru.mipt.physics.survey
 
 import freemarker.template.Configuration
-import freemarker.template.TemplateExceptionHandler
 import javafx.application.Application
 import tornadofx.App
-import java.io.File
 import java.util.logging.Level
 import java.util.logging.Logger
 
