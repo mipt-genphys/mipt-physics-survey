@@ -31,7 +31,7 @@ class ReportView : View() {
 //    private val labCompKey = "Помогают лучше понять изучаемый курс";
 //    private val labIndividualKey = "Преподаватель работает с Вами  индивидуально при сдаче";
 //    private val labReportKey = "Преподаватель разумно требователен к оформлению отчета";
-    private val defaultDataFile = "C:\\Users\\darksnake\\Dropbox\\MIPT\\connect\\responses-current.xlsx";
+    private val defaultDataFile = "Опрос (Responses).xlsx";
 
     override val root: VBox by fxml("/fxml/ReportView.fxml");
     val prepList: ListView<String> by fxid();
@@ -54,7 +54,10 @@ class ReportView : View() {
     init {
         this.title = "Генератор отчетов"
         inputFilePropery.addListener { observableValue, oldValue, newValue -> load(); }
-        inputFilePropery.set(File(defaultDataFile));
+        val defaultFile = File(defaultDataFile);
+        if (defaultFile.exists()) {
+            inputFilePropery.set(defaultFile);
+        }
 
         fromField.valueProperty().addListener({ observableValue, oldValue, newValue -> showSummary() })
         toField.valueProperty().addListener({ observableValue, oldValue, newValue -> showSummary() })
@@ -64,6 +67,7 @@ class ReportView : View() {
             fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("xlsx", "*.xlsx"));
             val inputFile = fileChooser.showOpenDialog(primaryStage);
             if (inputFile != null) {
+                reset();
                 inputFilePropery.set(inputFile);
             }
         };
@@ -88,6 +92,14 @@ class ReportView : View() {
         val out = StringWriter();
         template.process(dataMap, out);
         return out.toString();
+    }
+
+    fun reset(){
+        fileName.text = "";
+        prepMap.clear()
+        prepList.items.clear()
+        summaryBox.engine.loadContent("");
+        prepResultBox.engine.loadContent("");
     }
 
     fun buildSummary(from: LocalDate = LocalDate.MIN, to: LocalDate = LocalDate.MAX, embed: Boolean): String {
@@ -142,16 +154,18 @@ class ReportView : View() {
     }
 
     fun showSummary() {
-        Platform.runLater { -> summaryBox.engine.loadContent(buildSummary(fromField.value ?: LocalDate.MIN, toField.value ?: LocalDate.MAX, true)) }
+        if (inputFilePropery.isNotNull.get()) {
+            Platform.runLater { -> summaryBox.engine.loadContent(buildSummary(fromField.value ?: LocalDate.MIN, toField.value ?: LocalDate.MAX, true)) }
+        }
     }
 
-    fun getSemesterStart(): LocalDate{
+    fun getSemesterStart(): LocalDate {
         val now = LocalDate.now();
-        if(now.monthValue<2){
+        if (now.monthValue < 2) {
             return now.minusYears(1).withMonth(9).withDayOfMonth(1);
-        } else if(now.monthValue<9){
+        } else if (now.monthValue < 9) {
             return now.withMonth(2).withDayOfMonth(10);
-        } else{
+        } else {
             return now.withMonth(9).withDayOfMonth(1)
         }
     }
@@ -159,18 +173,25 @@ class ReportView : View() {
 
     fun load() {
         if (inputFilePropery.isNotNull.get()) {
-            fileName.text = inputFilePropery.get()?.path;
-            prepList.items.clear();
-            prepList.selectionModel.clearSelection()
-            prepMap.clear();
-            prepMap.putAll(buildPrepMap());
-            prepList.items.addAll(prepMap.keys.sorted())
-            prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
-                if (newValue != null) {
-                    showPrep(prepMap[newValue]!!)
+            try {
+                reset()
+                fileName.text = inputFilePropery.get()?.path;
+                prepMap.putAll(buildPrepMap());
+                prepList.items.addAll(prepMap.keys.sorted())
+                prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
+                    if (newValue != null) {
+                        showPrep(prepMap[newValue]!!)
+                    }
                 }
+                showSummary();
+            } catch (ex: Exception){
+                val alert = Alert(Alert.AlertType.ERROR);
+                alert.title = "Ошибка!"
+                alert.headerText = "Невозможно прочитать файл данных"
+                alert.contentText = "Произошла ошибка при чтении файла данных.\nПроверьте, что вы читаете правильный файл.";
+                alert.show();
+                reset()
             }
-            showSummary();
         }
     }
 }
