@@ -1,9 +1,6 @@
 package ru.mipt.physics.survey
 
-import javafx.collections.transformation.SortedList
-import org.apache.poi.ss.usermodel.Cell
-import org.apache.poi.ss.usermodel.Row
-import org.apache.poi.ss.usermodel.Workbook
+import com.sun.rowset.internal.Row
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -25,13 +22,15 @@ class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val m
         /**
          * total number of entries
          */
-        var entries = 0;
-            private set;
+        var entries = 0
+            private set
+
         /**
          * A number of entries in time range
          */
-        var rangeEntries = 0;
-            private set;
+        var rangeEntries = 0
+            private set
+
         /**
          * ratings map
          */
@@ -84,10 +83,10 @@ class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val m
         }
 
         fun getRangeRating(key: String): Double {
-            if (rangeEntries > 0) {
-                return rangeRatings.getOrDefault(key, 0).toDouble() / rangeEntries;
+            return if (rangeEntries > 0) {
+                rangeRatings.getOrDefault(key, 0).toDouble() / rangeEntries;
             } else {
-                return 0.0;
+                0.0;
             }
         }
     }
@@ -123,10 +122,10 @@ class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val m
  * Extension of excell cell to produce raw string
  */
 fun Cell.getRawStringValue(): String {
-    if (this.cellType == Cell.CELL_TYPE_NUMERIC) {
-        return numericCellValue.toString();
+    return if (this.cellType == Cell.CELL_TYPE_NUMERIC) {
+        numericCellValue.toString();
     } else {
-        return stringCellValue;
+        stringCellValue;
     }
 }
 
