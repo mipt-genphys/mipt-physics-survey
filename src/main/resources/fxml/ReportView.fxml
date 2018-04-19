@@ -1,72 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.DatePicker?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.ProgressBar?>
-<?import javafx.scene.control.Separator?>
-<?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.control.Tab?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.control.ToolBar?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Pane?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 <?import javafx.scene.web.WebView?>
-
 <VBox prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/null" xmlns:fx="http://javafx.com/fxml/1">
-   <children>
-      <ToolBar prefHeight="40.0" prefWidth="200.0">
-         <items>
-            <Button fx:id="loadDataButton" mnemonicParsing="false" text="Загрузить" />
-            <Label fx:id="fileName" />
-            <ProgressBar fx:id="loadProgressBar" prefWidth="200.0" progress="0.0" visible="false" />
-            <Pane HBox.hgrow="ALWAYS" />
-            <Separator orientation="VERTICAL" />
-            <Button fx:id="exportButton" mnemonicParsing="false" onAction="#export" text="Экспорт" />
-         </items>
-      </ToolBar>
-      <TabPane side="LEFT" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
-         <tabs>
-            <Tab fx:id="summaryTab" text="Общий отчет">
-              <content>
-                  <VBox>
-                     <children>
-                        <ToolBar prefHeight="40.0" prefWidth="200.0">
-                           <items>
-                              <Label text="С">
-                                 <padding>
-                                    <Insets left="10.0" right="5.0" />
-                                 </padding>
-                              </Label>
-                              <DatePicker fx:id="fromField" />
-                              <Label text="По">
-                                 <padding>
-                                    <Insets left="10.0" right="5.0" />
-                                 </padding>
-                              </Label>
-                              <DatePicker fx:id="toField" />
-                              <Separator orientation="VERTICAL" />
-                           </items>
-                        </ToolBar>
-                        <WebView fx:id="summaryBox" VBox.vgrow="ALWAYS" />
-                     </children>
-                  </VBox>
-              </content>
-            </Tab>
-            <Tab fx:id="prepsTab" closable="false" text="Преподаватели">
-               <content>
-                  <SplitPane dividerPositions="0.2">
-                    <items>
-                        <ListView fx:id="prepList" prefWidth="200.0" />
-                        <WebView fx:id="prepResultBox" />
-                    </items>
-                  </SplitPane>
-               </content>
-            </Tab>
-         </tabs>
-      </TabPane>
-   </children>
+   <ToolBar prefHeight="40.0" prefWidth="200.0">
+      <Button fx:id="loadDataButton" mnemonicParsing="false" text="Загрузить"/>
+      <Label fx:id="fileName"/>
+      <ProgressBar fx:id="loadProgressBar" prefWidth="200.0" progress="0.0" visible="false"/>
+      <Pane HBox.hgrow="ALWAYS"/>
+      <Separator orientation="VERTICAL"/>
+      <Button fx:id="exportButton" mnemonicParsing="false" onAction="#export" text="Экспорт"/>
+   </ToolBar>
+   <TabPane side="LEFT" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+      <Tab fx:id="summaryTab" text="Общий отчет">
+         <VBox>
+            <ToolBar prefHeight="40.0" prefWidth="200.0">
+               <Label text="С">
+                  <padding>
+                     <Insets left="10.0" right="5.0"/>
+                  </padding>
+               </Label>
+               <DatePicker fx:id="fromField"/>
+               <Label text="По">
+                  <padding>
+                     <Insets left="10.0" right="5.0"/>
+                  </padding>
+               </Label>
+               <DatePicker fx:id="toField"/>
+               <Separator orientation="VERTICAL"/>
+            </ToolBar>
+            <WebView fx:id="summaryBox" VBox.vgrow="ALWAYS"/>
+         </VBox>
+      </Tab>
+      <Tab fx:id="prepsTab" closable="false" text="Преподаватели">
+         <SplitPane dividerPositions="0.2">
+            <ListView fx:id="prepList" prefWidth="200.0"/>
+            <WebView fx:id="prepResultBox"/>
+         </SplitPane>
+      </Tab>
+   </TabPane>
 </VBox>

@@ -2,7 +2,7 @@ package ru.mipt.physics.survey
 
 import freemarker.template.Configuration
 import javafx.application.Application
-import tornadofx.App
+import tornadofx.*
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -28,14 +28,14 @@ fun configureFTL(): Configuration {
 
     // Set the preferred charset template files are stored in. UTF-8 is
     // a good choice in most applications:
-    cfg.setDefaultEncoding("UTF-8");
+    cfg.defaultEncoding = "UTF-8";
 
     // Sets how errors will appear.
     // During web page *development* TemplateExceptionHandler.HTML_DEBUG_HANDLER is better.
-    cfg.setTemplateExceptionHandler(freemarker.template.TemplateExceptionHandler.RETHROW_HANDLER);
+    cfg.templateExceptionHandler = freemarker.template.TemplateExceptionHandler.RETHROW_HANDLER;
 
     // Don't log exceptions inside FreeMarker that it will thrown at you anyway:
-    cfg.setLogTemplateExceptions(false);
+    cfg.logTemplateExceptions = false;
     return cfg
 }
 

@@ -2,16 +2,16 @@ package ru.mipt.physics.survey
 
 import javafx.application.Platform
 import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.value.ChangeListener
 import javafx.collections.FXCollections
-import javafx.scene.control.*
-import javafx.scene.layout.BorderPane
-import javafx.scene.layout.VBox
+import javafx.geometry.Orientation
+import javafx.geometry.Side
+import javafx.scene.control.Alert
+import javafx.scene.control.ListView
+import javafx.scene.control.TabPane
+import javafx.scene.layout.Priority
 import javafx.scene.web.WebView
 import javafx.stage.FileChooser
-import org.apache.poi.ss.usermodel.Workbook
-import org.apache.poi.ss.usermodel.WorkbookFactory
-import tornadofx.View
+import tornadofx.*
 import java.io.File
 import java.io.StringWriter
 import java.time.LocalDate
@@ -21,35 +21,67 @@ import java.util.*
  * Created by darksnake on 15-May-16.
  */
 class ReportView : View() {
-    //    private val lectureFunKey = "Увлекательность подачи материала";
-//    private val lectureCompKey = "Доступность изложения"
-//
-//    private val semProblemsKey = "Помогают научиться решать задачи";
-//    private val semCompKey = "Объяснения преподавателя понятны";
-//    private val semQuestKey = "Преподаватель готов отвечать на вопросы и давать дополнительные разъяснения";
-//
-//    private val labCompKey = "Помогают лучше понять изучаемый курс";
-//    private val labIndividualKey = "Преподаватель работает с Вами  индивидуально при сдаче";
-//    private val labReportKey = "Преподаватель разумно требователен к оформлению отчета";
-    private val defaultDataFile = "Опрос (Responses).xlsx";
-
-    override val root: VBox by fxml("/fxml/ReportView.fxml");
-    val prepList: ListView<String> by fxid();
-    val prepResultBox: WebView by fxid();
-    val summaryBox: WebView by fxid();
-    val fileName: Label by fxid();
-
-    val fromField: DatePicker by fxid()
-    val toField: DatePicker by fxid()
-
-    val loadDataButton: Button by fxid();
-//    val exportButton: Button by fxid();
-
-    val prepsTab: Tab by fxid();
-    val summaryTab: Tab by fxid();
-
-    private val inputFilePropery = SimpleObjectProperty<File>();
     private val prepMap = FXCollections.observableHashMap<String, PrepReport>();
+
+    private val fromDateProperty = SimpleObjectProperty<LocalDate>()
+    private val toDateProperty = SimpleObjectProperty<LocalDate>()
+    private lateinit var summaryWebView: WebView
+    private lateinit var prepList: ListView<String>
+    private lateinit var prepWebView: WebView
+
+
+
+    override val root = borderpane {
+        top {
+            toolbar {
+                prefHeight = 40.0
+                button("Обновить") {  }
+                progressbar {  }
+                separator(Orientation.VERTICAL)
+                pane{hgrow = Priority.ALWAYS}
+                separator(Orientation.VERTICAL)
+                button ("Экспорт"){  }
+                button("Информация") {  }
+            }
+        }
+        center {
+            tabpane {
+                tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
+                side = Side.LEFT
+                tab("Общий отчет") {
+                    borderpane {
+                        top {
+                            toolbar {
+                                prefHeight = 40.0
+                                label("С") {
+                                    insets(left = 10, right = 5)
+                                }
+                                datepicker(fromDateProperty)
+                                label("По") {
+                                    insets(left = 10, right = 5)
+                                }
+                                datepicker(toDateProperty)
+                            }
+                            separator(Orientation.VERTICAL)
+                        }
+                        center {
+                            summaryWebView = webview()
+                        }
+
+                    }
+                }
+                tab("Преподаватели") {
+                    splitpane {
+                        setDividerPosition(0, 0.2)
+                        prepList = listview {
+                            prefWidth = 200.0
+                        }
+                        prepWebView = webview()
+                    }
+                }
+            }
+        }
+    }
 
     init {
         this.title = "Генератор отчетов"
@@ -74,11 +106,6 @@ class ReportView : View() {
         fromField.value = getSemesterStart()
     }
 
-
-    fun getBook(): Workbook {
-        return WorkbookFactory.create(inputFilePropery.get());
-    }
-
     fun buildPrepMap(from: LocalDate = LocalDate.MIN, to: LocalDate = LocalDate.MAX): Map<String, PrepReport> {
         return fillPreps(getBook(), from, to);
     }
@@ -94,7 +121,7 @@ class ReportView : View() {
         return out.toString();
     }
 
-    fun reset(){
+    fun reset() {
         fileName.text = "";
         prepMap.clear()
         prepList.items.clear()
@@ -144,7 +171,8 @@ class ReportView : View() {
                 fileChooser.title = "Сохранить отчет";
                 fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("html", "*.html"));
                 fileChooser.initialFileName = "summary" + ".html";
-                fileChooser.showSaveDialog(primaryStage)?.writeText(buildSummary(fromField.value ?: LocalDate.MIN, toField.value ?: LocalDate.now(), false))
+                fileChooser.showSaveDialog(primaryStage)?.writeText(buildSummary(fromField.value
+                        ?: LocalDate.MIN, toField.value ?: LocalDate.now(), false))
             }
         }
     }
@@ -155,7 +183,10 @@ class ReportView : View() {
 
     fun showSummary() {
         if (inputFilePropery.isNotNull.get()) {
-            Platform.runLater { -> summaryBox.engine.loadContent(buildSummary(fromField.value ?: LocalDate.MIN, toField.value ?: LocalDate.MAX, true)) }
+            Platform.runLater { ->
+                summaryBox.engine.loadContent(buildSummary(fromField.value ?: LocalDate.MIN, toField.value
+                        ?: LocalDate.MAX, true))
+            }
         }
     }
 
@@ -171,6 +202,13 @@ class ReportView : View() {
     }
 
 
+    /**
+     * Reload statistics from data file
+     */
+    private fun reload(){
+
+    }
+
     fun load() {
         if (inputFilePropery.isNotNull.get()) {
             try {
@@ -184,7 +222,7 @@ class ReportView : View() {
                     }
                 }
                 showSummary();
-            } catch (ex: Exception){
+            } catch (ex: Exception) {
                 val alert = Alert(Alert.AlertType.ERROR);
                 alert.title = "Ошибка!"
                 alert.headerText = "Невозможно прочитать файл данных"
