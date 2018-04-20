@@ -11,58 +11,104 @@ import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.SheetsScopes
-import java.io.File
-import java.io.IOException
-import java.io.InputStreamReader
-import java.io.Serializable
-import java.util.Arrays
-import kotlin.collections.ArrayList
-import kotlin.collections.List
+import java.io.*
+import java.time.LocalDate
+import java.util.*
+import java.util.logging.Level
+import java.util.logging.Logger
 
 
-//    private val lectureFunKey = "Увлекательность подачи материала";
-//    private val lectureCompKey = "Доступность изложения"
-//
-//    private val semProblemsKey = "Помогают научиться решать задачи";
-//    private val semCompKey = "Объяснения преподавателя понятны";
-//    private val semQuestKey = "Преподаватель готов отвечать на вопросы и давать дополнительные разъяснения";
-//
-//    private val labCompKey = "Помогают лучше понять изучаемый курс";
-//    private val labIndividualKey = "Преподаватель работает с Вами  индивидуально при сдаче";
-//    private val labReportKey = "Преподаватель разумно требователен к оформлению отчета";
+const val lectureFunKey = "Увлекательность подачи материала";
+const val lectureCompKey = "Доступность изложения"
 
+const val semProblemsKey = "Помогают научиться решать задачи";
+const val semCompKey = "Объяснения преподавателя понятны";
+const val semQuestKey = "Преподаватель готов отвечать на вопросы и давать дополнительные разъяснения";
+
+const val labCompKey = "Помогают лучше понять изучаемый курс";
+const val labIndividualKey = "Преподаватель работает с Вами  индивидуально при сдаче";
+const val labReportKey = "Преподаватель разумно требователен к оформлению отчета";
+
+const val STORE_FILE_NAME = "surveyData.dat"
+
+const val DEFAULT_NAME = "#Не указано"
+
+private val logger = Logger.getLogger("SurveyData")
 
 data class SurveyEntry(
-        val group: String,
-        val lectorName: String,
+        val date: LocalDate,
+        val group: String?,
+
+        val lecturerName: String,
         val lectureFun: Byte,
-        val lectureComperhand: Byte,
+        val lectureComprehend: Byte,
+        val lectureComment: String?,
+
         val seminarName: String,
-        val seminarComperhand: Byte,
+        val seminarProblems: Byte,
+        val seminarComprehend: Byte,
         val seminarQuest: Byte,
+        val seminarComment: String?,
+
         val labName: String,
-        val labComperhand: Byte,
+        val labComprehend: Byte,
         val labIndividual: Byte,
-        val labReport: Byte
+        val labReport: Byte,
+        val labComment: String?
 ) : Serializable
 
-object SurveyData : Serializable {
-    val entries: List<SurveyEntry> = ArrayList()
-    //val lastUpdated: LocalDate
+object SurveyData {
+    val entries: MutableSet<SurveyEntry> = TreeSet(compareBy { it.date })
+    var lastUpdated: LocalDate = LocalDate.MIN
 
     /**
      * Update data from server
      */
-    fun update(){
-
+    fun update() {
+        synchronized(this) {
+            entries.addAll(Connection.load())
+        }
     }
 
+    /**
+     * Load data from file. Return true if read is successful
+     */
+    @Synchronized
+    fun load(): Boolean {
+        val file = File(STORE_FILE_NAME)
+        try {
+            ObjectInputStream(file.inputStream()).use {
+                lastUpdated = it.readObject() as LocalDate
+                entries.addAll(it.readObject() as Collection<SurveyEntry>)
+                return true
+            }
+        } catch (ex: Exception) {
+            Logger.getLogger("SurveyData").log(Level.WARNING, "Failed to laod data from file", ex)
+            return false
+        }
+    }
 
+    @Synchronized
+    fun save() {
+        if (!entries.isEmpty()) {
+            val file = File(STORE_FILE_NAME)
+            try {
+                ObjectOutputStream(file.outputStream()).use {
+                    it.writeObject(lastUpdated)
+                    it.writeObject(entries)
+                }
+            } catch (ex: Exception) {
+                logger.log(Level.WARNING, "Failed to save data from file", ex)
+            }
+        } else {
+            logger.log(Level.INFO, "Nothing to save")
+        }
+    }
 }
 
-object Connection {
+private object Connection {
     /** Application name.  */
-    private val APPLICATION_NAME = "Survey client"
+    private const val APPLICATION_NAME = "Survey client"
 
     /** Directory to store user credentials for this application.  */
     private val DATA_STORE_DIR = File("credentials.dat")
@@ -88,7 +134,7 @@ object Connection {
      * @return an authorized Sheets API client service
      * @throws IOException
      */
-    val sheetsService: Sheets by lazy {
+    private val sheetsService: Sheets by lazy {
         val credential = authorize()
         return@lazy Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
@@ -101,7 +147,7 @@ object Connection {
      * @throws IOException
      */
     @Throws(IOException::class)
-    fun authorize(): Credential {
+    private fun authorize(): Credential {
         // Load client secrets.
         val input = Connection::class.java.getResourceAsStream("/client_secret.json")
         val clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, InputStreamReader(input))
@@ -114,33 +160,50 @@ object Connection {
                 .build()
         val credential = AuthorizationCodeInstalledApp(
                 flow, LocalServerReceiver()).authorize("user")
-        println("Credentials saved to " + DATA_STORE_DIR.absolutePath)
+        logger.log(Level.INFO, "Credentials saved to " + DATA_STORE_DIR.absolutePath)
         return credential
     }
 
-    @Throws(IOException::class)
-    @JvmStatic
-    fun main(args: Array<String>) {
+    fun load(): List<SurveyEntry> {
         // Build a new authorized API client service.
         val service = sheetsService
 
         // Prints the names and majors of students in a sample spreadsheet:
         // https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
         val spreadsheetId = "1ztF9KdELyv333trk5raI2javne8HpEnQMbQtEnw8pno"
-        val range = "Class Data!A2:E"
+        val range = "Form Responses 1!A2:P"
         val response = service.spreadsheets().values()
                 .get(spreadsheetId, range)
                 .execute()
         val values = response.getValues()
-        if (values == null || values.size == 0) {
-            println("No data found.")
+
+        return if (values == null || values.size == 0) {
+            logger.log(Level.INFO, "No data found on server")
+            emptyList()
         } else {
-            println("Name, Major")
-            for (row in values) {
-                // Print columns A and E, which correspond to indices 0 and 4.
-                System.out.printf("%s, %s\n", row[0], row[4])
+            logger.log(Level.INFO, "Found ${values.size} entries on server")
+            values.map {
+                SurveyEntry(
+                        date = it[0] as LocalDate,
+                        group = it[1] as String?,
+                        lecturerName = (it[2] as String?) ?: DEFAULT_NAME,
+                        lectureComprehend = it[3] as Byte,
+                        lectureFun = it[4] as Byte,
+                        lectureComment = it[5] as String?,
+                        seminarName = (it[6] as String?) ?: DEFAULT_NAME,
+                        seminarProblems = it[7] as Byte,
+                        seminarComprehend = it[8] as Byte,
+                        seminarQuest = it[9] as Byte,
+                        seminarComment = it[10] as String?,
+                        labName = (it[11] as String?) ?: DEFAULT_NAME,
+                        labComprehend = it[12] as Byte,
+                        labIndividual = it[13] as Byte,
+                        labReport = it[14] as Byte,
+                        labComment = it[15] as String?
+                )
             }
         }
+
     }
 
 
