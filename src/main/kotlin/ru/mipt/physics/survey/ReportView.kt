@@ -12,7 +12,6 @@ import javafx.scene.layout.Priority
 import javafx.scene.web.WebView
 import javafx.stage.FileChooser
 import tornadofx.*
-import java.io.File
 import java.io.StringWriter
 import java.time.LocalDate
 import java.util.*
@@ -85,14 +84,10 @@ class ReportView : View() {
 
     init {
         this.title = "Генератор отчетов"
-        inputFilePropery.addListener { observableValue, oldValue, newValue -> load(); }
-        val defaultFile = File(defaultDataFile);
-        if (defaultFile.exists()) {
-            inputFilePropery.set(defaultFile);
-        }
 
-        fromField.valueProperty().addListener({ observableValue, oldValue, newValue -> showSummary() })
-        toField.valueProperty().addListener({ observableValue, oldValue, newValue -> showSummary() })
+        fromDateProperty.onChange { showSummary() }
+        toDateProperty.onChange { showSummary() }
+
         loadDataButton.setOnAction { event ->
             val fileChooser = FileChooser();
             fileChooser.title = "Открыть файл данных";
@@ -103,7 +98,7 @@ class ReportView : View() {
                 inputFilePropery.set(inputFile);
             }
         };
-        fromField.value = getSemesterStart()
+        fromDateProperty.value = getSemesterStart()
     }
 
     fun buildPrepMap(from: LocalDate = LocalDate.MIN, to: LocalDate = LocalDate.MAX): Map<String, PrepReport> {
