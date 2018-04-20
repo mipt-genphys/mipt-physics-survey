@@ -9,18 +9,13 @@ import java.util.logging.Logger
 /**
  * Created by darksnake on 17-May-16.
  */
-class ReportApp : App() {
-    override val primaryView = ReportView::class
-    fun startApp(args: Array<String>) {
-        Application.launch(*args);
-    }
-}
+class ReportApp : App(ReportView::class)
 
 fun configureFTL(): Configuration {
     // Create your Configuration instance, and specify if up to what FreeMarker
     // version (here 2.3.24) do you want to apply the fixes that are not 100%
     // backward-compatible. See the Configuration JavaDoc for details.
-    val cfg = Configuration(Configuration.VERSION_2_3_23);
+    val cfg = Configuration(Configuration.VERSION_2_3_28);
 
     // Specify the source where the template files come from. Here I set a
     // plain directory for it, but non-file-system sources are possible too:
@@ -43,5 +38,5 @@ val cfg = configureFTL();
 
 fun main(args: Array<String>) {
     Logger.getGlobal().level = Level.ALL;
-    ReportApp().startApp(args)
+    Application.launch(ReportApp::class.java, *args)
 }
