@@ -130,17 +130,17 @@ class ReportView : View() {
             val range = from != LocalDate.MIN || to != LocalDate.MAX;
             val prep = preps.first();
             val dataMap = HashMap<String, Any>();
-            dataMap.put("preps", preps);
-            dataMap.put("range", range);
-            dataMap.put("lectureRatingKeys", prep.lecturesSummary.getRatingKeys().toList())
-            dataMap.put("lectureRatingNum", prep.lecturesSummary.getRatingKeys().size + 1)
-            dataMap.put("seminarRatingKeys", prep.seminarsSummary.getRatingKeys().toList())
-            dataMap.put("seminarRatingNum", prep.seminarsSummary.getRatingKeys().size + 1)
-            dataMap.put("labRatingKeys", prep.labSummary.getRatingKeys().toList())
-            dataMap.put("labRatingNum", prep.labSummary.getRatingKeys().size + 1)
-            dataMap.put("startDate", from)
-            dataMap.put("endDate", to)
-            dataMap.put("embed", embed)
+            dataMap["preps"] = preps;
+            dataMap["range"] = range;
+            dataMap["lectureRatingKeys"] = prep.lecturesSummary.getRatingKeys().toList()
+            dataMap["lectureRatingNum"] = prep.lecturesSummary.getRatingKeys().size + 1
+            dataMap["seminarRatingKeys"] = prep.seminarsSummary.getRatingKeys().toList()
+            dataMap["seminarRatingNum"] = prep.seminarsSummary.getRatingKeys().size + 1
+            dataMap["labRatingKeys"] = prep.labSummary.getRatingKeys().toList()
+            dataMap["labRatingNum"] = prep.labSummary.getRatingKeys().size + 1
+            dataMap["startDate"] = from
+            dataMap["endDate"] = to
+            dataMap["embed"] = embed
             val template = cfg.getTemplate("SummaryReport.ftl");
             val out = StringWriter();
             template.process(dataMap, out);
