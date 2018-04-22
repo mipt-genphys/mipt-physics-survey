@@ -57,6 +57,11 @@ data class SurveyEntry(
         val labComment: String?
 ) : Serializable
 
+interface UpdateCallback {
+    fun notifyUpdateMessage(message: String)
+    fun notifyUpdateInProgress(inProgress: Boolean)
+}
+
 object SurveyData {
     val entries: MutableSet<SurveyEntry> = TreeSet(compareBy { it.date })
     var lastUpdated: LocalDate = LocalDate.MIN
@@ -64,9 +69,19 @@ object SurveyData {
     /**
      * Update data from server
      */
-    fun update() {
+    fun update(callback: UpdateCallback) {
         synchronized(this) {
-            entries.addAll(Connection.load())
+            callback.notifyUpdateInProgress(true)
+            try {
+                
+                load()
+                entries.addAll(Connection.load())
+                if(entries.isEmpty()){
+
+                }
+            } finally {
+                callback.notifyUpdateInProgress(false)
+            }
         }
     }
 
