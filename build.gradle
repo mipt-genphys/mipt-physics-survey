@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.31"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.40"
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.3'
     }
 }
@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.31"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.40"
     compile 'no.tornado:tornadofx:1.7.15'
     compile group: 'org.freemarker', name: 'freemarker', version: '2.3.28'
     compile 'com.google.api-client:google-api-client:1.23.0'

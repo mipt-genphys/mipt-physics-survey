@@ -5,8 +5,8 @@ import javafx.beans.property.SimpleObjectProperty
 import javafx.collections.FXCollections
 import javafx.geometry.Orientation
 import javafx.geometry.Side
-import javafx.scene.control.Alert
 import javafx.scene.control.ListView
+import javafx.scene.control.Tab
 import javafx.scene.control.TabPane
 import javafx.scene.layout.Priority
 import javafx.scene.web.WebView
@@ -28,26 +28,27 @@ class ReportView : View() {
     private lateinit var prepList: ListView<String>
     private lateinit var prepWebView: WebView
 
-
+    private lateinit var summaryTab: Tab
+    private lateinit var prepsTab: Tab
 
     override val root = borderpane {
         top {
             toolbar {
                 prefHeight = 40.0
-                button("Обновить") {  }
-                progressbar {  }
+                button("Обновить") { }
+                progressbar { }
                 separator(Orientation.VERTICAL)
-                pane{hgrow = Priority.ALWAYS}
+                pane { hgrow = Priority.ALWAYS }
                 separator(Orientation.VERTICAL)
-                button ("Экспорт"){  }
-                button("Информация") {  }
+                button("Экспорт") { }
+                button("Информация") { }
             }
         }
         center {
             tabpane {
                 tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
                 side = Side.LEFT
-                tab("Общий отчет") {
+                summaryTab = tab("Общий отчет") {
                     borderpane {
                         top {
                             toolbar {
@@ -69,7 +70,7 @@ class ReportView : View() {
 
                     }
                 }
-                tab("Преподаватели") {
+                prepsTab = tab("Преподаватели") {
                     splitpane {
                         setDividerPosition(0, 0.2)
                         prepList = listview {
@@ -120,8 +121,8 @@ class ReportView : View() {
         fileName.text = "";
         prepMap.clear()
         prepList.items.clear()
-        summaryBox.engine.loadContent("");
-        prepResultBox.engine.loadContent("");
+        summaryWebView.engine.loadContent("");
+        prepWebView.engine.loadContent("");
     }
 
     fun buildSummary(from: LocalDate = LocalDate.MIN, to: LocalDate = LocalDate.MAX, embed: Boolean): String {
@@ -166,33 +167,41 @@ class ReportView : View() {
                 fileChooser.title = "Сохранить отчет";
                 fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("html", "*.html"));
                 fileChooser.initialFileName = "summary" + ".html";
-                fileChooser.showSaveDialog(primaryStage)?.writeText(buildSummary(fromField.value
-                        ?: LocalDate.MIN, toField.value ?: LocalDate.now(), false))
+                fileChooser.showSaveDialog(primaryStage)?.writeText(
+                        buildSummary(
+                                fromDateProperty.value ?: LocalDate.MIN,
+                                toDateProperty.value ?: LocalDate.now(),
+                                false
+                        )
+                )
             }
         }
     }
 
     fun showPrep(report: PrepReport) {
-        Platform.runLater { -> prepResultBox.engine.loadContent(buildPrepReport(report, true)) };
+        Platform.runLater { -> prepWebView.engine.loadContent(buildPrepReport(report, true)) };
     }
 
     fun showSummary() {
         if (inputFilePropery.isNotNull.get()) {
             Platform.runLater { ->
-                summaryBox.engine.loadContent(buildSummary(fromField.value ?: LocalDate.MIN, toField.value
-                        ?: LocalDate.MAX, true))
+                summaryWebView.engine.loadContent(
+                        buildSummary(
+                                fromDateProperty.value ?: LocalDate.MIN,
+                                toDateProperty.value ?: LocalDate.MAX,
+                                true
+                        )
+                )
             }
         }
     }
 
     fun getSemesterStart(): LocalDate {
         val now = LocalDate.now();
-        if (now.monthValue < 2) {
-            return now.minusYears(1).withMonth(9).withDayOfMonth(1);
-        } else if (now.monthValue < 9) {
-            return now.withMonth(2).withDayOfMonth(10);
-        } else {
-            return now.withMonth(9).withDayOfMonth(1)
+        return when {
+            now.monthValue < 2 -> now.minusYears(1).withMonth(9).withDayOfMonth(1)
+            now.monthValue < 9 -> now.withMonth(2).withDayOfMonth(10)
+            else -> now.withMonth(9).withDayOfMonth(1)
         }
     }
 
@@ -200,32 +209,32 @@ class ReportView : View() {
     /**
      * Reload statistics from data file
      */
-    private fun reload(){
+    private fun reload() {
 
     }
 
-    fun load() {
-        if (inputFilePropery.isNotNull.get()) {
-            try {
-                reset()
-                fileName.text = inputFilePropery.get()?.path;
-                prepMap.putAll(buildPrepMap());
-                prepList.items.addAll(prepMap.keys.sorted())
-                prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
-                    if (newValue != null) {
-                        showPrep(prepMap[newValue]!!)
-                    }
-                }
-                showSummary();
-            } catch (ex: Exception) {
-                val alert = Alert(Alert.AlertType.ERROR);
-                alert.title = "Ошибка!"
-                alert.headerText = "Невозможно прочитать файл данных"
-                alert.contentText = "Произошла ошибка при чтении файла данных.\nПроверьте, что вы читаете правильный файл.";
-                alert.show();
-                reset()
-            }
-        }
-    }
+//    fun load() {
+//        if (inputFilePropery.isNotNull.get()) {
+//            try {
+//                reset()
+//                fileName.text = inputFilePropery.get()?.path;
+//                prepMap.putAll(buildPrepMap());
+//                prepList.items.addAll(prepMap.keys.sorted())
+//                prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
+//                    if (newValue != null) {
+//                        showPrep(prepMap[newValue]!!)
+//                    }
+//                }
+//                showSummary();
+//            } catch (ex: Exception) {
+//                val alert = Alert(Alert.AlertType.ERROR);
+//                alert.title = "Ошибка!"
+//                alert.headerText = "Невозможно прочитать файл данных"
+//                alert.contentText = "Произошла ошибка при чтении файла данных.\nПроверьте, что вы читаете правильный файл.";
+//                alert.show();
+//                reset()
+//            }
+//        }
+//    }
 }
 
