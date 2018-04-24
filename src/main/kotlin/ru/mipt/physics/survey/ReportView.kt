@@ -6,6 +6,7 @@ import javafx.collections.FXCollections
 import javafx.geometry.Orientation
 import javafx.geometry.Side
 import javafx.scene.control.ListView
+import javafx.scene.control.ProgressBar
 import javafx.scene.control.Tab
 import javafx.scene.control.TabPane
 import javafx.scene.layout.Priority
@@ -19,7 +20,8 @@ import java.util.*
 /**
  * Created by darksnake on 15-May-16.
  */
-class ReportView : View() {
+class ReportView : View(), UpdateCallback {
+
     private val prepMap = FXCollections.observableHashMap<String, PrepReport>();
 
     private val fromDateProperty = SimpleObjectProperty<LocalDate>()
@@ -30,13 +32,20 @@ class ReportView : View() {
 
     private lateinit var summaryTab: Tab
     private lateinit var prepsTab: Tab
+    private lateinit var progressBar: ProgressBar
 
     override val root = borderpane {
         top {
             toolbar {
                 prefHeight = 40.0
-                button("Обновить") { }
-                progressbar { }
+                button("Обновить") {
+                    action {
+                        update()
+                    }
+                }
+                progressBar = progressbar {
+                    progress = 0.0
+                }
                 separator(Orientation.VERTICAL)
                 pane { hgrow = Priority.ALWAYS }
                 separator(Orientation.VERTICAL)
@@ -61,8 +70,8 @@ class ReportView : View() {
                                     insets(left = 10, right = 5)
                                 }
                                 datepicker(toDateProperty)
+                                separator(Orientation.VERTICAL)
                             }
-                            separator(Orientation.VERTICAL)
                         }
                         center {
                             summaryWebView = webview()
@@ -88,23 +97,23 @@ class ReportView : View() {
 
         fromDateProperty.onChange { showSummary() }
         toDateProperty.onChange { showSummary() }
-
-        loadDataButton.setOnAction { event ->
-            val fileChooser = FileChooser();
-            fileChooser.title = "Открыть файл данных";
-            fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("xlsx", "*.xlsx"));
-            val inputFile = fileChooser.showOpenDialog(primaryStage);
-            if (inputFile != null) {
-                reset();
-                inputFilePropery.set(inputFile);
-            }
-        };
         fromDateProperty.value = getSemesterStart()
     }
 
-    fun buildPrepMap(from: LocalDate = LocalDate.MIN, to: LocalDate = LocalDate.MAX): Map<String, PrepReport> {
-        return fillPreps(getBook(), from, to);
+    override fun notifyUpdateMessage(message: String) {
+        //TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
+
+    override fun notifyUpdateInProgress(inProgress: Boolean) {
+        runLater {
+            if (inProgress) {
+                progressBar.progress = -1.0
+            } else {
+                progressBar.progress = 0.0
+            }
+        }
+    }
+
 
     fun buildPrepReport(report: PrepReport, embed: Boolean): String {
         val dataMap = HashMap<String, Any>();
@@ -117,8 +126,62 @@ class ReportView : View() {
         return out.toString();
     }
 
+    /**
+     * Fill preps from data store table and return a map
+     */
+    fun fillPreps(from: LocalDate = LocalDate.MIN, to: LocalDate = LocalDate.MAX) {
+        prepMap.clear()
+
+        fun getPrep(prepName: String): PrepReport {
+            return prepMap.getOrPut(prepName) { -> PrepReport(prepName, from, to) }
+        }
+
+        SurveyData.entries.forEach {
+            getPrep(it.lecturerName).addLectureRating(
+                    it.date,
+                    mapOf(
+                            lectureCompKey to it.lectureComprehend,
+                            lectureFunKey to it.lectureFun
+                    ),
+                    it.lectureComment
+            )
+            getPrep(it.seminarName).addSeminarRating(
+                    it.date,
+                    mapOf(
+                            semProblemsKey to it.seminarProblems,
+                            semCompKey to it.seminarComprehend,
+                            semQuestKey to it.seminarQuest
+                    ),
+                    it.seminarComment
+            )
+            getPrep(it.labName).addLabRating(
+                    it.date,
+                    mapOf(
+                            labCompKey to it.labComprehend,
+                            labIndividualKey to it.labIndividual,
+                            labReportKey to it.labReport
+                    ),
+                    it.labComment
+            )
+        }
+
+    }
+
+    fun update() {
+        runLater { progressBar.progress = -1.0 }
+        SurveyData.update(this)
+        reset()
+        fillPreps()
+        prepList.items.addAll(prepMap.keys.sorted())
+        prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
+            if (newValue != null) {
+                showPrep(prepMap[newValue]!!)
+            }
+        }
+        showSummary();
+    }
+
     fun reset() {
-        fileName.text = "";
         prepMap.clear()
         prepList.items.clear()
         summaryWebView.engine.loadContent("");
@@ -126,7 +189,8 @@ class ReportView : View() {
     }
 
     fun buildSummary(from: LocalDate = LocalDate.MIN, to: LocalDate = LocalDate.MAX, embed: Boolean): String {
-        val preps = buildPrepMap(from, to).values.toSortedSet(Comparator { first, second -> first.name.compareTo(second.name) });
+        fillPreps(from, to)
+        val preps = prepMap.values.toSortedSet(compareBy { it.name });
         if (!preps.isEmpty()) {
             val range = from != LocalDate.MIN || to != LocalDate.MAX;
             val prep = preps.first();
@@ -134,11 +198,11 @@ class ReportView : View() {
             dataMap["preps"] = preps;
             dataMap["range"] = range;
             dataMap["lectureRatingKeys"] = prep.lecturesSummary.getRatingKeys().toList()
-            dataMap["lectureRatingNum"] = prep.lecturesSummary.getRatingKeys().size + 1
+            dataMap["lectureRatingNum"] = prep.lecturesSummary.getRatingKeys().size
             dataMap["seminarRatingKeys"] = prep.seminarsSummary.getRatingKeys().toList()
-            dataMap["seminarRatingNum"] = prep.seminarsSummary.getRatingKeys().size + 1
+            dataMap["seminarRatingNum"] = prep.seminarsSummary.getRatingKeys().size
             dataMap["labRatingKeys"] = prep.labSummary.getRatingKeys().toList()
-            dataMap["labRatingNum"] = prep.labSummary.getRatingKeys().size + 1
+            dataMap["labRatingNum"] = prep.labSummary.getRatingKeys().size
             dataMap["startDate"] = from
             dataMap["endDate"] = to
             dataMap["embed"] = embed
@@ -183,16 +247,14 @@ class ReportView : View() {
     }
 
     fun showSummary() {
-        if (inputFilePropery.isNotNull.get()) {
-            Platform.runLater { ->
-                summaryWebView.engine.loadContent(
-                        buildSummary(
-                                fromDateProperty.value ?: LocalDate.MIN,
-                                toDateProperty.value ?: LocalDate.MAX,
-                                true
-                        )
-                )
-            }
+        Platform.runLater { ->
+            summaryWebView.engine.loadContent(
+                    buildSummary(
+                            fromDateProperty.value ?: LocalDate.MIN,
+                            toDateProperty.value ?: LocalDate.MAX,
+                            true
+                    )
+            )
         }
     }
 
@@ -204,37 +266,5 @@ class ReportView : View() {
             else -> now.withMonth(9).withDayOfMonth(1)
         }
     }
-
-
-    /**
-     * Reload statistics from data file
-     */
-    private fun reload() {
-
-    }
-
-//    fun load() {
-//        if (inputFilePropery.isNotNull.get()) {
-//            try {
-//                reset()
-//                fileName.text = inputFilePropery.get()?.path;
-//                prepMap.putAll(buildPrepMap());
-//                prepList.items.addAll(prepMap.keys.sorted())
-//                prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
-//                    if (newValue != null) {
-//                        showPrep(prepMap[newValue]!!)
-//                    }
-//                }
-//                showSummary();
-//            } catch (ex: Exception) {
-//                val alert = Alert(Alert.AlertType.ERROR);
-//                alert.title = "Ошибка!"
-//                alert.headerText = "Невозможно прочитать файл данных"
-//                alert.contentText = "Произошла ошибка при чтении файла данных.\nПроверьте, что вы читаете правильный файл.";
-//                alert.show();
-//                reset()
-//            }
-//        }
-//    }
 }
 
