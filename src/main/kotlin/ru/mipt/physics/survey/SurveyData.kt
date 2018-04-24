@@ -13,9 +13,11 @@ import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.SheetsScopes
 import java.io.*
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.collections.ArrayList
 
 
 const val lectureFunKey = "Увлекательность подачи материала";
@@ -63,7 +65,7 @@ interface UpdateCallback {
 }
 
 object SurveyData {
-    val entries: MutableSet<SurveyEntry> = TreeSet(compareBy { it.date })
+    val entries: MutableList<SurveyEntry> = ArrayList()
     var lastUpdated: LocalDate = LocalDate.MIN
 
     /**
@@ -71,12 +73,12 @@ object SurveyData {
      */
     fun update(callback: UpdateCallback) {
         synchronized(this) {
+            entries.clear()
             callback.notifyUpdateInProgress(true)
             try {
-                
                 load()
-                entries.addAll(Connection.load())
-                if(entries.isEmpty()){
+                entries.addAll(Connection.download())
+                if (entries.isEmpty()) {
 
                 }
             } finally {
@@ -98,7 +100,7 @@ object SurveyData {
                 return true
             }
         } catch (ex: Exception) {
-            Logger.getLogger("SurveyData").log(Level.WARNING, "Failed to laod data from file", ex)
+            Logger.getLogger("SurveyData").log(Level.INFO, "Failed to load data from file", ex)
             return false
         }
     }
@@ -179,7 +181,10 @@ private object Connection {
         return credential
     }
 
-    fun load(): List<SurveyEntry> {
+    //6/11/2015 2:14:12
+    private val dateFormat = DateTimeFormatter.ofPattern("M'/'d'/'yyyy H':'mm':'ss")
+
+    fun download(): List<SurveyEntry> {
         // Build a new authorized API client service.
         val service = sheetsService
 
@@ -198,28 +203,127 @@ private object Connection {
         } else {
             logger.log(Level.INFO, "Found ${values.size} entries on server")
             values.map {
-                SurveyEntry(
-                        date = it[0] as LocalDate,
-                        group = it[1] as String?,
-                        lecturerName = (it[2] as String?) ?: DEFAULT_NAME,
-                        lectureComprehend = it[3] as Byte,
-                        lectureFun = it[4] as Byte,
-                        lectureComment = it[5] as String?,
-                        seminarName = (it[6] as String?) ?: DEFAULT_NAME,
-                        seminarProblems = it[7] as Byte,
-                        seminarComprehend = it[8] as Byte,
-                        seminarQuest = it[9] as Byte,
-                        seminarComment = it[10] as String?,
-                        labName = (it[11] as String?) ?: DEFAULT_NAME,
-                        labComprehend = it[12] as Byte,
-                        labIndividual = it[13] as Byte,
-                        labReport = it[14] as Byte,
-                        labComment = it[15] as String?
-                )
+                try {
+                    SurveyEntry(
+                            date = LocalDate.parse(it[0].toString(), dateFormat),
+                            group = it[1] as String?,
+                            lecturerName = (it.getOrNull(2) as String?) ?: DEFAULT_NAME,
+                            lectureComprehend = it[3].toString().toByte(),
+                            lectureFun = it[4].toString().toByte(),
+                            lectureComment = it.getOrNull(5) as String?,
+                            seminarName = (it.getOrNull(6) as String?) ?: DEFAULT_NAME,
+                            seminarProblems = it[7].toString().toByte(),
+                            seminarComprehend = it[8].toString().toByte(),
+                            seminarQuest = it[9].toString().toByte(),
+                            seminarComment = it.getOrNull(10) as String?,
+                            labName = (it.getOrNull(11) as String?) ?: DEFAULT_NAME,
+                            labComprehend = it[12].toString().toByte(),
+                            labIndividual = it[13].toString().toByte(),
+                            labReport = it[14].toString().toByte(),
+                            labComment = it.getOrNull(15) as String?
+                    )
+                } catch (ex:Exception){
+                    logger.log(Level.SEVERE, "Failed to parse entry: $it")
+                    null
+                }
+            }.filterNotNull()
+        }
+    }
+}
+
+
+
+/**
+ * A report on specific prep
+ * Created by darksnake on 15-May-16.
+ */
+class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val maxDate: LocalDate = LocalDate.MAX) {
+    class Summary() {
+        /**
+         * all comments
+         */
+        val comments = TreeSet<Pair<LocalDate, String>>(Comparator { first, second -> -first.first.compareTo(second.first) });
+        /**
+         * total number of entries
+         */
+        var entries = 0
+            private set
+
+        /**
+         * A number of entries in time range
+         */
+        var rangeEntries = 0
+            private set
+
+        /**
+         * ratings map
+         */
+        val ratings = HashMap<String, Int>();
+        /**
+         * ratings in range
+         */
+        val rangeRatings = HashMap<String, Int>();
+
+        fun addRating(time: LocalDate, rating: Map<String, Byte>, comment: String? = null, inRange: Boolean = false) {
+            entries++;
+            rating.forEach { entry ->
+                ratings[entry.key] = (ratings[entry.key] ?: 0) + entry.value
+            }
+            if (inRange) {
+                rangeEntries++;
+                rating.forEach { entry ->
+                    rangeRatings[entry.key] = (rangeRatings[entry.key] ?: 0) + entry.value
+                }
+            }
+
+            if (comment != null && !comment.isBlank()) {
+                comments.add(Pair(time, comment));
             }
         }
 
+        fun getRatingKeys(): Collection<String> {
+            return ratings.keys
+        }
+
+        fun getRating(key: String): Double {
+            return if (entries > 0) {
+                ratings.getOrDefault(key, 0).toDouble() / entries;
+            } else {
+                0.0;
+            }
+        }
+
+        fun getRangeRating(key: String): Double {
+            return if (rangeEntries > 0) {
+                rangeRatings.getOrDefault(key, 0).toDouble() / rangeEntries;
+            } else {
+                0.0;
+            }
+        }
     }
 
+    val lecturesSummary = Summary();
+    val seminarsSummary = Summary();
+    val labSummary = Summary();
+
+    fun hasRange(): Boolean {
+        return minDate != LocalDate.MIN || maxDate != LocalDate.MAX;
+    }
+
+    fun isInRange(date: LocalDate): Boolean {
+        return hasRange() && date.isBefore(maxDate) && date.isAfter(minDate);
+    }
+
+    fun addLectureRating(time: LocalDate, rating: Map<String, Byte>, comment: String? = "") {
+        lecturesSummary.addRating(time, rating, comment, isInRange(time));
+    }
+
+    fun addSeminarRating(time: LocalDate, rating: Map<String, Byte>, comment: String? = "") {
+        seminarsSummary.addRating(time, rating, comment, isInRange(time));
+    }
+
+    fun addLabRating(time: LocalDate, rating: Map<String, Byte>, comment: String? = "") {
+        labSummary.addRating(time, rating, comment, isInRange(time));
+    }
 
 }
