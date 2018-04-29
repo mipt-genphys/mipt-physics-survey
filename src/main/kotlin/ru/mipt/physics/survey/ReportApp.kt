@@ -2,6 +2,8 @@ package ru.mipt.physics.survey
 
 import freemarker.template.Configuration
 import javafx.application.Application
+import javafx.scene.image.Image
+import javafx.stage.Stage
 import tornadofx.*
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -9,7 +11,12 @@ import java.util.logging.Logger
 /**
  * Created by darksnake on 17-May-16.
  */
-class ReportApp : App(ReportView::class)
+class ReportApp : App(ReportView::class){
+    override fun start(stage: Stage) {
+        stage.icons += icon
+        super.start(stage)
+    }
+}
 
 fun configureFTL(): Configuration {
     // Create your Configuration instance, and specify if up to what FreeMarker
@@ -35,6 +42,8 @@ fun configureFTL(): Configuration {
 }
 
 val cfg = configureFTL();
+
+val icon = Image(ReportApp::class.java.getResourceAsStream("/npm-logo-no-text-white.png"))
 
 fun main(args: Array<String>) {
     Logger.getGlobal().level = Level.ALL;

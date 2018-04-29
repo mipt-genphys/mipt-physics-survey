@@ -76,10 +76,11 @@ object SurveyData {
             entries.clear()
             callback.notifyUpdateInProgress(true)
             try {
-                load()
-                entries.addAll(Connection.download())
-                if (entries.isEmpty()) {
-
+                val newEntries = Connection.download(entries.size)
+                entries.addAll(newEntries)
+                callback.notifyUpdateMessage("Загружено ${newEntries.size} новых записи с сервера")
+                if (newEntries.isNotEmpty()) {
+                    save()
                 }
             } finally {
                 callback.notifyUpdateInProgress(false)
@@ -90,35 +91,48 @@ object SurveyData {
     /**
      * Load data from file. Return true if read is successful
      */
-    @Synchronized
-    fun load(): Boolean {
-        val file = File(STORE_FILE_NAME)
-        try {
-            ObjectInputStream(file.inputStream()).use {
-                lastUpdated = it.readObject() as LocalDate
-                entries.addAll(it.readObject() as Collection<SurveyEntry>)
-                return true
+    fun load(callback: UpdateCallback): Boolean {
+        synchronized(this) {
+            val file = File(STORE_FILE_NAME)
+            if (file.exists()) {
+                callback.notifyUpdateInProgress(true)
+                try {
+                    callback.notifyUpdateMessage("Загрузка данных из локального файла")
+                    ObjectInputStream(file.inputStream()).use {
+                        lastUpdated = it.readObject() as LocalDate
+                        entries.addAll(it.readObject() as Collection<SurveyEntry>)
+                        callback.notifyUpdateMessage("Загружено ${entries.size} записи из файла")
+                        return true
+                    }
+                } catch (ex: Exception) {
+                    Logger.getLogger("SurveyData").log(Level.INFO, "Failed to load data from file", ex)
+                    return false
+                } finally {
+                    callback.notifyUpdateInProgress(false)
+                }
+            } else {
+                callback.notifyUpdateMessage("Локальная копия данных не найдена")
+                return false
             }
-        } catch (ex: Exception) {
-            Logger.getLogger("SurveyData").log(Level.INFO, "Failed to load data from file", ex)
-            return false
         }
     }
 
     @Synchronized
-    fun save() {
-        if (!entries.isEmpty()) {
-            val file = File(STORE_FILE_NAME)
-            try {
-                ObjectOutputStream(file.outputStream()).use {
-                    it.writeObject(lastUpdated)
-                    it.writeObject(entries)
+    private fun save() {
+        synchronized(this) {
+            if (!entries.isEmpty()) {
+                val file = File(STORE_FILE_NAME)
+                try {
+                    ObjectOutputStream(file.outputStream()).use {
+                        it.writeObject(lastUpdated)
+                        it.writeObject(entries)
+                    }
+                } catch (ex: Exception) {
+                    logger.log(Level.WARNING, "Failed to save data from file", ex)
                 }
-            } catch (ex: Exception) {
-                logger.log(Level.WARNING, "Failed to save data from file", ex)
+            } else {
+                logger.log(Level.INFO, "Nothing to save")
             }
-        } else {
-            logger.log(Level.INFO, "Nothing to save")
         }
     }
 }
@@ -128,7 +142,7 @@ private object Connection {
     private const val APPLICATION_NAME = "Survey client"
 
     /** Directory to store user credentials for this application.  */
-    private val DATA_STORE_DIR = File("credentials.dat")
+    private val DATA_STORE_DIR = File(".credentials")
 
     /** Global instance of the [FileDataStoreFactory].  */
     private val DATA_STORE_FACTORY: FileDataStoreFactory = FileDataStoreFactory(DATA_STORE_DIR)
@@ -184,14 +198,14 @@ private object Connection {
     //6/11/2015 2:14:12
     private val dateFormat = DateTimeFormatter.ofPattern("M'/'d'/'yyyy H':'mm':'ss")
 
-    fun download(): List<SurveyEntry> {
+    fun download(startIndex: Int = 0): List<SurveyEntry> {
         // Build a new authorized API client service.
         val service = sheetsService
 
         // Prints the names and majors of students in a sample spreadsheet:
         // https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
         val spreadsheetId = "1ztF9KdELyv333trk5raI2javne8HpEnQMbQtEnw8pno"
-        val range = "Form Responses 1!A2:P"
+        val range = "Form Responses 1!A${startIndex + 2}:P"
         val response = service.spreadsheets().values()
                 .get(spreadsheetId, range)
                 .execute()
@@ -222,7 +236,7 @@ private object Connection {
                             labReport = it[14].toString().toByte(),
                             labComment = it.getOrNull(15) as String?
                     )
-                } catch (ex:Exception){
+                } catch (ex: Exception) {
                     logger.log(Level.SEVERE, "Failed to parse entry: $it")
                     null
                 }
@@ -230,7 +244,6 @@ private object Connection {
         }
     }
 }
-
 
 
 /**

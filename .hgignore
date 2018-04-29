@@ -7,3 +7,6 @@ out/
 build/
 !gradle-wrapper.jar
 
+*.dat
+.credentials/
+

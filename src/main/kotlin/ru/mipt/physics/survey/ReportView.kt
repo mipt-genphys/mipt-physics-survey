@@ -5,10 +5,8 @@ import javafx.beans.property.SimpleObjectProperty
 import javafx.collections.FXCollections
 import javafx.geometry.Orientation
 import javafx.geometry.Side
-import javafx.scene.control.ListView
-import javafx.scene.control.ProgressBar
-import javafx.scene.control.Tab
-import javafx.scene.control.TabPane
+import javafx.scene.control.*
+import javafx.scene.image.ImageView
 import javafx.scene.layout.Priority
 import javafx.scene.web.WebView
 import javafx.stage.FileChooser
@@ -20,7 +18,7 @@ import java.util.*
 /**
  * Created by darksnake on 15-May-16.
  */
-class ReportView : View(), UpdateCallback {
+class ReportView : View("Генератор отчетов", ImageView(icon)), UpdateCallback {
 
     private val prepMap = FXCollections.observableHashMap<String, PrepReport>();
 
@@ -32,7 +30,8 @@ class ReportView : View(), UpdateCallback {
 
     private lateinit var summaryTab: Tab
     private lateinit var prepsTab: Tab
-    private lateinit var progressBar: ProgressBar
+    private lateinit var progressBar: ProgressIndicator
+    private lateinit var messageLabel: Label
 
     override val root = borderpane {
         top {
@@ -40,17 +39,23 @@ class ReportView : View(), UpdateCallback {
                 prefHeight = 40.0
                 button("Обновить") {
                     action {
+                        SurveyData.update(this@ReportView)
                         update()
                     }
                 }
-                progressBar = progressbar {
-                    progress = 0.0
+                progressBar = progressindicator{
+                    prefHeight = 30.0
+                    progress = -1.0
+                    isVisible = false
                 }
                 separator(Orientation.VERTICAL)
+                messageLabel = label()
                 pane { hgrow = Priority.ALWAYS }
                 separator(Orientation.VERTICAL)
-                button("Экспорт") { }
-                button("Информация") { }
+                button("Экспорт") {
+                    action { export() }
+                }
+                //button("Информация") { }
             }
         }
         center {
@@ -92,25 +97,25 @@ class ReportView : View(), UpdateCallback {
         }
     }
 
-    init {
-        this.title = "Генератор отчетов"
 
+    init {
         fromDateProperty.onChange { showSummary() }
         toDateProperty.onChange { showSummary() }
         fromDateProperty.value = getSemesterStart()
+
+        SurveyData.load(this)
+        update()
     }
 
     override fun notifyUpdateMessage(message: String) {
-        //TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        runLater {
+            messageLabel.text = message
+        }
     }
 
     override fun notifyUpdateInProgress(inProgress: Boolean) {
         runLater {
-            if (inProgress) {
-                progressBar.progress = -1.0
-            } else {
-                progressBar.progress = 0.0
-            }
+            progressBar.isVisible = inProgress
         }
     }
 
@@ -167,9 +172,7 @@ class ReportView : View(), UpdateCallback {
 
     }
 
-    fun update() {
-        runLater { progressBar.progress = -1.0 }
-        SurveyData.update(this)
+    private fun update() {
         reset()
         fillPreps()
         prepList.items.addAll(prepMap.keys.sorted())
@@ -181,7 +184,7 @@ class ReportView : View(), UpdateCallback {
         showSummary();
     }
 
-    fun reset() {
+    private fun reset() {
         prepMap.clear()
         prepList.items.clear()
         summaryWebView.engine.loadContent("");
@@ -215,7 +218,7 @@ class ReportView : View(), UpdateCallback {
         }
     }
 
-    fun export() {
+    private fun export() {
         if (prepsTab.isSelected) {
             val currentPrepName = prepList.selectionModel.selectedItem;
             if (currentPrepName != null) {
