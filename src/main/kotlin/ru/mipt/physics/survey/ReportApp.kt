@@ -5,16 +5,22 @@ import javafx.application.Application
 import javafx.scene.image.Image
 import javafx.stage.Stage
 import tornadofx.*
+import java.lang.System.exit
 import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
  * Created by darksnake on 17-May-16.
  */
-class ReportApp : App(ReportView::class){
+class ReportApp : App(ReportView::class) {
     override fun start(stage: Stage) {
         stage.icons += icon
         super.start(stage)
+    }
+
+    override fun stop() {
+        super.stop()
+        exit(0)
     }
 }
 
