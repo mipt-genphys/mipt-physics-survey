@@ -39,11 +39,13 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
                 prefHeight = 40.0
                 button("Обновить") {
                     action {
-                        SurveyData.update(this@ReportView)
-                        update()
+                        runAsync(daemon = true) {
+                            SurveyData.update(this@ReportView)
+                            update()
+                        }
                     }
                 }
-                progressBar = progressindicator{
+                progressBar = progressindicator {
                     prefHeight = 30.0
                     progress = -1.0
                     isVisible = false
@@ -53,7 +55,9 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
                 pane { hgrow = Priority.ALWAYS }
                 separator(Orientation.VERTICAL)
                 button("Экспорт") {
-                    action { export() }
+                    action {
+                        export()
+                    }
                 }
                 //button("Информация") { }
             }
@@ -103,8 +107,10 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
         toDateProperty.onChange { showSummary() }
         fromDateProperty.value = getSemesterStart()
 
-        SurveyData.load(this)
-        update()
+        runAsync(daemon = true) {
+            SurveyData.load(this@ReportView)
+            update()
+        }
     }
 
     override fun notifyUpdateMessage(message: String) {
@@ -173,15 +179,17 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
     }
 
     private fun update() {
-        reset()
-        fillPreps()
-        prepList.items.addAll(prepMap.keys.sorted())
-        prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
-            if (newValue != null) {
-                showPrep(prepMap[newValue]!!)
+        runLater {
+            reset()
+            fillPreps()
+            prepList.items.addAll(prepMap.keys.sorted())
+            prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
+                if (newValue != null) {
+                    showPrep(prepMap[newValue]!!)
+                }
             }
+            showSummary()
         }
-        showSummary();
     }
 
     private fun reset() {

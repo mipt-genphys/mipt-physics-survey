@@ -73,9 +73,9 @@ object SurveyData {
      */
     fun update(callback: UpdateCallback) {
         synchronized(this) {
-            entries.clear()
             callback.notifyUpdateInProgress(true)
             try {
+                callback.notifyUpdateMessage("Загрузка данных с сервера")
                 val newEntries = Connection.download(entries.size)
                 entries.addAll(newEntries)
                 callback.notifyUpdateMessage("Загружено ${newEntries.size} новых записи с сервера")
@@ -216,7 +216,7 @@ private object Connection {
             emptyList()
         } else {
             logger.log(Level.INFO, "Found ${values.size} entries on server")
-            values.map {
+            values.mapNotNull {
                 try {
                     SurveyEntry(
                             date = LocalDate.parse(it[0].toString(), dateFormat),
@@ -240,7 +240,7 @@ private object Connection {
                     logger.log(Level.SEVERE, "Failed to parse entry: $it")
                     null
                 }
-            }.filterNotNull()
+            }
         }
     }
 }
