@@ -41,9 +41,9 @@
                 <#--header rows-->
                 <tr>
                     <th rowspan="2">Фамилия преподавателя</th>
-                    <th colspan="${lectureRatingNum}">За всю историю</th>
+                    <th colspan="${lectureRatingNum + 1}">За всю историю</th>
                     <#if range>
-                        <th colspan="${lectureRatingNum}">За период</th>
+                        <th colspan="${lectureRatingNum + 1}">За период</th>
                     </#if>
                 </tr>
                 <tr>
@@ -88,9 +88,9 @@
             <#--header rows-->
                 <tr>
                     <th rowspan="2">Фамилия преподавателя</th>
-                    <th colspan="${seminarRatingNum}">За всю историю</th>
+                    <th colspan="${seminarRatingNum + 1}">За всю историю</th>
                 <#if range>
-                    <th colspan="${seminarRatingNum}">За период</th>
+                    <th colspan="${seminarRatingNum + 1}">За период</th>
                 </#if>
                 </tr>
                 <tr>
@@ -135,9 +135,9 @@
             <#--header rows-->
                 <tr>
                     <th rowspan="2">Фамилия преподавателя</th>
-                    <th colspan="${labRatingNum}">За всю историю</th>
+                    <th colspan="${labRatingNum + 1}">За всю историю</th>
                 <#if range>
-                    <th colspan="${labRatingNum}">За период</th>
+                    <th colspan="${labRatingNum + 1}">За период</th>
                 </#if>
                 </tr>
                 <tr>
@@ -171,7 +171,6 @@
                 </#if>
             </#list>
 
-            </table>
         </div>
     </div>
 
