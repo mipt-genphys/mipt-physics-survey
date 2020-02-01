@@ -38,25 +38,25 @@ const val DEFAULT_NAME = "#Не указано"
 private val logger = Logger.getLogger("SurveyData")
 
 data class SurveyEntry(
-        val date: LocalDate,
-        val group: String?,
+    val date: LocalDate,
+    val group: String?,
 
-        val lecturerName: String,
-        val lectureFun: Byte,
-        val lectureComprehend: Byte,
-        val lectureComment: String?,
+    val lecturerName: String,
+    val lectureFun: Byte,
+    val lectureComprehend: Byte,
+    val lectureComment: String?,
 
-        val seminarName: String,
-        val seminarProblems: Byte,
-        val seminarComprehend: Byte,
-        val seminarQuest: Byte,
-        val seminarComment: String?,
+    val seminarName: String,
+    val seminarProblems: Byte,
+    val seminarComprehend: Byte,
+    val seminarQuest: Byte,
+    val seminarComment: String?,
 
-        val labName: String,
-        val labComprehend: Byte,
-        val labIndividual: Byte,
-        val labReport: Byte,
-        val labComment: String?
+    val labName: String,
+    val labComprehend: Byte,
+    val labIndividual: Byte,
+    val labReport: Byte,
+    val labComment: String?
 ) : Serializable
 
 interface UpdateCallback {
@@ -100,6 +100,7 @@ object SurveyData {
                     callback.notifyUpdateMessage("Загрузка данных из локального файла")
                     ObjectInputStream(file.inputStream()).use {
                         lastUpdated = it.readObject() as LocalDate
+                        @Suppress("UNCHECKED_CAST")
                         entries.addAll(it.readObject() as Collection<SurveyEntry>)
                         callback.notifyUpdateMessage("Загружено ${entries.size} записи из файла")
                         return true
@@ -168,8 +169,8 @@ private object Connection {
     private val sheetsService: Sheets by lazy {
         val credential = authorize()
         return@lazy Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
-                .setApplicationName(APPLICATION_NAME)
-                .build()
+            .setApplicationName(APPLICATION_NAME)
+            .build()
     }
 
     /**
@@ -185,12 +186,14 @@ private object Connection {
 
         // Build flow and trigger user authorization request.
         val flow = GoogleAuthorizationCodeFlow.Builder(
-                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
-                .setDataStoreFactory(DATA_STORE_FACTORY)
-                .setAccessType("offline")
-                .build()
+                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES
+            )
+            .setDataStoreFactory(DATA_STORE_FACTORY)
+            .setAccessType("offline")
+            .build()
         val credential = AuthorizationCodeInstalledApp(
-                flow, LocalServerReceiver()).authorize("user")
+            flow, LocalServerReceiver()
+        ).authorize("user")
         logger.log(Level.INFO, "Credentials saved to " + DATA_STORE_DIR.absolutePath)
         return credential
     }
@@ -207,8 +210,8 @@ private object Connection {
         val spreadsheetId = "1ztF9KdELyv333trk5raI2javne8HpEnQMbQtEnw8pno"
         val range = "Form Responses 1!A${startIndex + 2}:P"
         val response = service.spreadsheets().values()
-                .get(spreadsheetId, range)
-                .execute()
+            .get(spreadsheetId, range)
+            .execute()
         val values = response.getValues()
 
         return if (values == null || values.size == 0) {
@@ -219,22 +222,22 @@ private object Connection {
             values.mapNotNull {
                 try {
                     SurveyEntry(
-                            date = LocalDate.parse(it[0].toString(), dateFormat),
-                            group = it[1] as String?,
-                            lecturerName = (it.getOrNull(2) as String?) ?: DEFAULT_NAME,
-                            lectureComprehend = it[3].toString().toByte(),
-                            lectureFun = it[4].toString().toByte(),
-                            lectureComment = it.getOrNull(5) as String?,
-                            seminarName = (it.getOrNull(6) as String?) ?: DEFAULT_NAME,
-                            seminarProblems = it[7].toString().toByte(),
-                            seminarComprehend = it[8].toString().toByte(),
-                            seminarQuest = it[9].toString().toByte(),
-                            seminarComment = it.getOrNull(10) as String?,
-                            labName = (it.getOrNull(11) as String?) ?: DEFAULT_NAME,
-                            labComprehend = it[12].toString().toByte(),
-                            labIndividual = it[13].toString().toByte(),
-                            labReport = it[14].toString().toByte(),
-                            labComment = it.getOrNull(15) as String?
+                        date = LocalDate.parse(it[0].toString(), dateFormat),
+                        group = it[1] as String?,
+                        lecturerName = (it.getOrNull(2) as String?) ?: DEFAULT_NAME,
+                        lectureComprehend = it[3].toString().toByte(),
+                        lectureFun = it[4].toString().toByte(),
+                        lectureComment = it.getOrNull(5) as String?,
+                        seminarName = (it.getOrNull(6) as String?) ?: DEFAULT_NAME,
+                        seminarProblems = it[7].toString().toByte(),
+                        seminarComprehend = it[8].toString().toByte(),
+                        seminarQuest = it[9].toString().toByte(),
+                        seminarComment = it.getOrNull(10) as String?,
+                        labName = (it.getOrNull(11) as String?) ?: DEFAULT_NAME,
+                        labComprehend = it[12].toString().toByte(),
+                        labIndividual = it[13].toString().toByte(),
+                        labReport = it[14].toString().toByte(),
+                        labComment = it.getOrNull(15) as String?
                     )
                 } catch (ex: Exception) {
                     logger.log(Level.SEVERE, "Failed to parse entry: $it")
@@ -255,7 +258,9 @@ class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val m
         /**
          * all comments
          */
-        val comments = TreeSet<Pair<LocalDate, String>>(Comparator { first, second -> -first.first.compareTo(second.first) });
+        val comments =
+            TreeSet<Pair<LocalDate, String>>(Comparator { first, second -> -first.first.compareTo(second.first) });
+
         /**
          * total number of entries
          */
@@ -272,6 +277,7 @@ class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val m
          * ratings map
          */
         val ratings = HashMap<String, Int>();
+
         /**
          * ratings in range
          */

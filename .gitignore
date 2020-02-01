@@ -1,0 +1,9 @@
+out/
+.idea/
+.gradle
+build/
+!gradle-wrapper.jar
+
+*.iws
+*.dat
+.credentials/

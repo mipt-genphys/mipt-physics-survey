@@ -183,7 +183,7 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
             reset()
             fillPreps()
             prepList.items.addAll(prepMap.keys.sorted())
-            prepList.selectionModel.selectedItemProperty().addListener { observableValue, oldValue, newValue ->
+            prepList.selectionModel.selectedItemProperty().addListener { _, _, newValue ->
                 if (newValue != null) {
                     showPrep(prepMap[newValue]!!)
                 }
