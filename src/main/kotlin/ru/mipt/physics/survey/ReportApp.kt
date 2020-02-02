@@ -5,12 +5,6 @@ import javafx.application.Application
 import javafx.scene.image.Image
 import javafx.stage.Stage
 import tornadofx.*
-import java.lang.System.exit
-import java.util.logging.Level
-import java.util.logging.Logger
-
-//import java.util.logging.Level
-//import java.util.logging.Logger
 
 /**
  * Created by darksnake on 17-May-16.
@@ -19,11 +13,6 @@ class ReportApp : App(ReportView::class) {
     override fun start(stage: Stage) {
         stage.icons += icon
         super.start(stage)
-    }
-
-    override fun stop() {
-        super.stop()
-        exit(0)
     }
 }
 
@@ -55,6 +44,6 @@ val cfg = configureFTL();
 val icon = Image(ReportApp::class.java.getResourceAsStream("/npm-logo-no-text-white.png"))
 
 fun main(args: Array<String>) {
-    Logger.getGlobal().level = Level.ALL;
+    //Logger.getGlobal().level = Level.ALL;
     Application.launch(ReportApp::class.java, *args)
 }

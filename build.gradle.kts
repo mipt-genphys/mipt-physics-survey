@@ -13,15 +13,15 @@ group = "ru.mipt.physics"
 version = "1.1.2"
 
 val compileKotlin: KotlinCompile by tasks
-//val compileJava: JavaCompile by tasks
-//compileJava.destinationDir = compileKotlin.destinationDir
+val compileJava: JavaCompile by tasks
+compileJava.destinationDir = compileKotlin.destinationDir
 
 compileKotlin.kotlinOptions {
     jvmTarget = "11"
 }
 
 application {
-    mainClassName = "ru.mipt.physics.survey.ReportApp"
+    mainClassName = "ru.mipt.physics.survey.ReportAppKt"
 }
 
 repositories {
@@ -35,7 +35,7 @@ dependencies {
     implementation("no.tornado:tornadofx:1.7.20") {
         exclude("org.jetbrains.kotlin")
     }
-    implementation("org.freemarker:freemarker:2.3.28")
+    implementation("org.freemarker:freemarker:2.3.29")
     implementation("com.google.api-client:google-api-client:1.30.5")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.23.0")
     implementation("com.google.apis:google-api-services-sheets:v4-rev604-1.25.0")
