@@ -38,6 +38,7 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
             toolbar {
                 prefHeight = 40.0
                 button("Обновить") {
+                    tooltip("Обновить данные с сервера")
                     action {
                         runAsync(daemon = true) {
                             SurveyData.update(this@ReportView)
@@ -54,7 +55,15 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
                 messageLabel = label()
                 pane { hgrow = Priority.ALWAYS }
                 separator(Orientation.VERTICAL)
+                button("Очистить"){
+                    tooltip("Очистить данные и авторизацию")
+                    action{
+                        resetData()
+                    }
+                }
+                separator(Orientation.VERTICAL)
                 button("Экспорт") {
+                    tooltip("Экспортировать данные в виде HTML")
                     action {
                         export()
                     }
@@ -180,7 +189,7 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
 
     private fun update() {
         runLater {
-            reset()
+            resetView()
             fillPreps()
             prepList.items.addAll(prepMap.keys.sorted())
             prepList.selectionModel.selectedItemProperty().addListener { _, _, newValue ->
@@ -192,7 +201,7 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
         }
     }
 
-    private fun reset() {
+    private fun resetView() {
         prepMap.clear()
         prepList.items.clear()
         summaryWebView.engine.loadContent("");
@@ -233,7 +242,7 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
                 val fileChooser = FileChooser();
                 fileChooser.title = "Сохранить отчет";
                 fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("html", "*.html"));
-                fileChooser.initialFileName = currentPrepName + ".html";
+                fileChooser.initialFileName = "$currentPrepName.html";
                 fileChooser.showSaveDialog(primaryStage)?.writeText(buildPrepReport(prepMap.get(currentPrepName)!!, false))
             }
         } else if (summaryTab.isSelected) {
@@ -251,6 +260,11 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
                 )
             }
         }
+    }
+
+    private fun resetData(){
+        SurveyData.reset()
+        resetView()
     }
 
     fun showPrep(report: PrepReport) {
