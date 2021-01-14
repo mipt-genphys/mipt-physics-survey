@@ -18,18 +18,19 @@ import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 
-const val lectureFunKey = "Увлекательность подачи материала";
+const val lectureFunKey = "Увлекательность подачи материала"
 const val lectureCompKey = "Доступность изложения"
 
-const val semProblemsKey = "Помогают научиться решать задачи";
-const val semCompKey = "Объяснения преподавателя понятны";
-const val semQuestKey = "Преподаватель готов отвечать на вопросы и давать дополнительные разъяснения";
+const val semProblemsKey = "Помогают научиться решать задачи"
+const val semCompKey = "Объяснения преподавателя понятны"
+const val semQuestKey = "Преподаватель готов отвечать на вопросы и давать дополнительные разъяснения"
 
-const val labCompKey = "Помогают лучше понять изучаемый курс";
-const val labIndividualKey = "Преподаватель работает с Вами  индивидуально при сдаче";
-const val labReportKey = "Преподаватель разумно требователен к оформлению отчета";
+const val labCompKey = "Помогают лучше понять изучаемый курс"
+const val labIndividualKey = "Преподаватель работает с Вами  индивидуально при сдаче"
+const val labReportKey = "Преподаватель разумно требователен к оформлению отчета"
 
 const val STORE_FILE_NAME = "surveyData.dat"
 
@@ -56,7 +57,7 @@ data class SurveyEntry(
     val labComprehend: Byte,
     val labIndividual: Byte,
     val labReport: Byte,
-    val labComment: String?
+    val labComment: String?,
 ) : Serializable
 
 interface UpdateCallback {
@@ -186,9 +187,8 @@ private object Connection {
 
         // Build flow and trigger user authorization request.
         val flow = GoogleAuthorizationCodeFlow.Builder(
-                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES
-            )
-            .setDataStoreFactory(DATA_STORE_FACTORY)
+            HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES
+        ).setDataStoreFactory(DATA_STORE_FACTORY)
             .setAccessType("offline")
             .build()
         val credential = AuthorizationCodeInstalledApp(
@@ -248,18 +248,20 @@ private object Connection {
     }
 }
 
-
 /**
  * A report on specific prep
  * Created by darksnake on 15-May-16.
  */
 class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val maxDate: LocalDate = LocalDate.MAX) {
-    class Summary() {
+    class Summary {
         /**
          * all comments
          */
-        val comments =
-            TreeSet<Pair<LocalDate, String>>(Comparator { first, second -> -first.first.compareTo(second.first) });
+        val comments = TreeSet(
+            Comparator.comparing<Pair<LocalDate, String>, LocalDate> { it.first }.reversed()
+                    then
+                    Comparator.comparing { it.second }
+        )
 
         /**
          * total number of entries
@@ -276,27 +278,27 @@ class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val m
         /**
          * ratings map
          */
-        val ratings = HashMap<String, Int>();
+        val ratings = HashMap<String, Int>()
 
         /**
          * ratings in range
          */
-        val rangeRatings = HashMap<String, Int>();
+        val rangeRatings = HashMap<String, Int>()
 
         fun addRating(time: LocalDate, rating: Map<String, Byte>, comment: String? = null, inRange: Boolean = false) {
-            entries++;
+            entries++
             rating.forEach { entry ->
                 ratings[entry.key] = (ratings[entry.key] ?: 0) + entry.value
             }
             if (inRange) {
-                rangeEntries++;
+                rangeEntries++
                 rating.forEach { entry ->
                     rangeRatings[entry.key] = (rangeRatings[entry.key] ?: 0) + entry.value
                 }
             }
 
-            if (comment != null && !comment.isBlank()) {
-                comments.add(Pair(time, comment));
+            if (comment != null && comment.isNotBlank()) {
+                comments.add(Pair(time, comment))
             }
         }
 
@@ -306,43 +308,43 @@ class PrepReport(val name: String, val minDate: LocalDate = LocalDate.MIN, val m
 
         fun getRating(key: String): Double {
             return if (entries > 0) {
-                ratings.getOrDefault(key, 0).toDouble() / entries;
+                ratings.getOrDefault(key, 0).toDouble() / entries
             } else {
-                0.0;
+                0.0
             }
         }
 
         fun getRangeRating(key: String): Double {
             return if (rangeEntries > 0) {
-                rangeRatings.getOrDefault(key, 0).toDouble() / rangeEntries;
+                rangeRatings.getOrDefault(key, 0).toDouble() / rangeEntries
             } else {
-                0.0;
+                0.0
             }
         }
     }
 
-    val lecturesSummary = Summary();
-    val seminarsSummary = Summary();
-    val labSummary = Summary();
+    val lecturesSummary = Summary()
+    val seminarsSummary = Summary()
+    val labSummary = Summary()
 
     fun hasRange(): Boolean {
-        return minDate != LocalDate.MIN || maxDate != LocalDate.MAX;
+        return minDate != LocalDate.MIN || maxDate != LocalDate.MAX
     }
 
     fun isInRange(date: LocalDate): Boolean {
-        return hasRange() && date.isBefore(maxDate) && date.isAfter(minDate);
+        return hasRange() && date.isBefore(maxDate) && date.isAfter(minDate)
     }
 
     fun addLectureRating(time: LocalDate, rating: Map<String, Byte>, comment: String? = "") {
-        lecturesSummary.addRating(time, rating, comment, isInRange(time));
+        lecturesSummary.addRating(time, rating, comment, isInRange(time))
     }
 
     fun addSeminarRating(time: LocalDate, rating: Map<String, Byte>, comment: String? = "") {
-        seminarsSummary.addRating(time, rating, comment, isInRange(time));
+        seminarsSummary.addRating(time, rating, comment, isInRange(time))
     }
 
     fun addLabRating(time: LocalDate, rating: Map<String, Byte>, comment: String? = "") {
-        labSummary.addRating(time, rating, comment, isInRange(time));
+        labSummary.addRating(time, rating, comment, isInRange(time))
     }
 
 }

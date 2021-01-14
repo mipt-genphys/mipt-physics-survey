@@ -128,9 +128,9 @@ class ReportView : View("Генератор отчетов", ImageView(icon)), U
 
     fun buildPrepReport(report: PrepReport, embed: Boolean): String {
         val dataMap = HashMap<String, Any>();
-        dataMap.put("prep", report);
+        dataMap["prep"] = report;
 //        dataMap.put("resourceDir", this.javaClass.getResource("/assets").toString());
-        dataMap.put("embed", embed)
+        dataMap["embed"] = embed
         val template = cfg.getTemplate("PrepReport.ftl");
         val out = StringWriter();
         template.process(dataMap, out);
