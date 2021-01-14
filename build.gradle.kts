@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ru.mipt.physics"
-version = "1.1.2"
+version = "1.1.3"
 
 val compileKotlin: KotlinCompile by tasks
 val compileJava: JavaCompile by tasks
