@@ -7,17 +7,15 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.http.HttpTransport
-import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.SheetsScopes
 import java.io.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
-import kotlin.collections.ArrayList
 
 
 const val lectureFunKey = "Увлекательность подачи материала"
@@ -72,19 +70,17 @@ object SurveyData {
      * Update data from server
      */
     fun update(callback: UpdateCallback) {
-        synchronized(this) {
-            callback.notifyUpdateInProgress(true)
-            try {
-                callback.notifyUpdateMessage("Загрузка данных с сервера")
-                val newEntries = Connection.download(entries.size)
-                entries.addAll(newEntries)
-                callback.notifyUpdateMessage("Загружено ${newEntries.size} новых записи с сервера")
-                if (newEntries.isNotEmpty()) {
-                    save()
-                }
-            } finally {
-                callback.notifyUpdateInProgress(false)
+        callback.notifyUpdateInProgress(true)
+        try {
+            callback.notifyUpdateMessage("Загрузка данных с сервера")
+            val newEntries = Connection.download(entries.size)
+            entries.addAll(newEntries)
+            callback.notifyUpdateMessage("Загружено ${newEntries.size} новых записи с сервера")
+            if (newEntries.isNotEmpty()) {
+                save()
             }
+        } finally {
+            callback.notifyUpdateInProgress(false)
         }
     }
 
@@ -120,7 +116,7 @@ object SurveyData {
 
     private fun save() {
         synchronized(this) {
-            if (!entries.isEmpty()) {
+            if (entries.isNotEmpty()) {
                 val file = File(STORE_FILE_NAME)
                 try {
                     ObjectOutputStream(file.outputStream()).use {
@@ -155,7 +151,7 @@ private object Connection {
     private val DATA_STORE_FACTORY: FileDataStoreFactory = FileDataStoreFactory(DATA_STORE_DIR)
 
     /** Global instance of the JSON factory.  */
-    private val JSON_FACTORY = JacksonFactory.getDefaultInstance()
+    private val JSON_FACTORY = GsonFactory.getDefaultInstance()
 
     /** Global instance of the HTTP transport.  */
     private val HTTP_TRANSPORT: HttpTransport = GoogleNetHttpTransport.newTrustedTransport()
@@ -165,7 +161,7 @@ private object Connection {
      * If modifying these scopes, delete your previously saved credentials
      * at ~/.credentials/sheets.googleapis.com-java-quickstart
      */
-    private val SCOPES = Arrays.asList(SheetsScopes.SPREADSHEETS_READONLY)
+    private val SCOPES = listOf(SheetsScopes.SPREADSHEETS_READONLY)
 
     /**
      * Build and return an authorized Sheets API client service.
@@ -187,7 +183,7 @@ private object Connection {
     @Throws(IOException::class)
     private fun authorize(): Credential {
         // Load client secrets.
-        val input = Connection::class.java.getResourceAsStream("/client_secret.json")
+        val input = Connection::class.java.getResourceAsStream("/client_secret.json")!!
         val clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, InputStreamReader(input))
 
         // Build flow and trigger user authorization request.
@@ -196,6 +192,7 @@ private object Connection {
         ).setDataStoreFactory(DATA_STORE_FACTORY)
             .setAccessType("offline")
             .build()
+
         val credential = AuthorizationCodeInstalledApp(
             flow, LocalServerReceiver()
         ).authorize("user")
@@ -252,7 +249,7 @@ private object Connection {
         }
     }
 
-    fun reset(){
+    fun reset() {
         DATA_STORE_DIR.takeIf { it.exists() }?.delete()
     }
 }
